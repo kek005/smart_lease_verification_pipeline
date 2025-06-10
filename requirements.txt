@@ -1,3 +1,4 @@
 twilio
 pdfplumber
 python-dotenv
+pdf2image

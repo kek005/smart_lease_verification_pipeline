@@ -1,2 +1,12 @@
 .env
 followup_queue.json
+__pycache__
+submission_log.json
+error_log.json
+uploaded_lease.pdf
+trace_summary_20250609_221117.json
+trace_summary_20250609_204421.json
+traces/
+submission_log.json
+signature_page.png
+outputs/

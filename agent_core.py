@@ -1,7 +1,9 @@
 import os
+import json
 from openai import OpenAI
 from dotenv import load_dotenv
 from prompt_templates import SYSTEM_PROMPT, USER_INSTRUCTION_TEMPLATE
+from text_utils import clean_pdf_text, summarize_chunks  # We always summarize before GPT-4o
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -63,29 +65,33 @@ tools = [
     },
 ]
 
-# ======= Function Router ======= #
+# ======= Agent Router ======= #
 
-def run_agent(ticket_id: str, document_text: str):
+def run_agent(ticket_id: str, pdf_path: str):
+    print(f"\n[🧼] Cleaning PDF text before summarization...")
+    # ✅ Always summarize before GPT-4o
+    summarized_text, trace_file_path = summarize_chunks(pdf_path)
+
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": USER_INSTRUCTION_TEMPLATE.format(ticket_id=ticket_id)},
-            {"role": "user", "content": document_text}
+            {"role": "user", "content": summarized_text}
         ],
         tools=tools,
-        tool_choice="auto"
+        tool_choice="auto",
+        temperature=0.5
     )
 
     tool_calls = response.choices[0].message.tool_calls
     if not tool_calls:
         return "⚠️ GPT did not call any tools. Please try again."
 
-    # Simulate tool execution
     result_store = {}
     for call in tool_calls:
         name = call.function.name
-        args = eval(call.function.arguments)
+        args = json.loads(call.function.arguments)
 
         if name == "check_signature":
             result_store["check"] = check_signature(**args)
@@ -95,4 +101,4 @@ def run_agent(ticket_id: str, document_text: str):
     is_signed = result_store.get("check", {}).get("is_signed", "no")
     valid_date_range = result_store.get("dates", {}).get("valid_date_range", False)
 
-    return generate_response(is_signed, valid_date_range)
+    return generate_response(is_signed, valid_date_range), trace_file_path
