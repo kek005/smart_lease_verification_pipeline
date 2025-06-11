@@ -39,7 +39,6 @@ This was built with **real-world business use cases in mind** — like PECO (uti
 
 ## 🏗️ Architecture Overview
 
-```mermaid
 flowchart TD
   A[User Uploads PDF] --> B[Clean + Chunk Text]
   B --> C[GPT-4o Summary w/ Function Calls]
