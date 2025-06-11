@@ -16,6 +16,13 @@ def smart_truncate(text: str, max_tokens: int = 8000) -> str:
         return text
     return text[:max_chars] + "\n\n[...Document truncated for processing due to size limits...]"
 
+
+def chunk_text(text: str, chunk_size: int = 2000) -> list:
+    """
+    Splits cleaned text into chunks of max `chunk_size` characters.
+    """
+    return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+
 # ======= Summarizer with Trace + Safety =======
 
 def summarize_chunks(pdf_path: str, chunk_size: int = 2000):
@@ -30,10 +37,11 @@ def summarize_chunks(pdf_path: str, chunk_size: int = 2000):
         for page_num, page in enumerate(pdf.pages, start=1):
             raw_text = page.extract_text() or ""
             cleaned = clean_pdf_text(raw_text)
+            chunks = chunk_text(cleaned, chunk_size)
 
-            chunks = [cleaned[i:i+chunk_size] for i in range(0, len(cleaned), chunk_size)]
             for chunk_index, chunk in enumerate(chunks):
                 print(f"[📄] Summarizing Page {page_num}, Chunk {chunk_index+1}/{len(chunks)}")
+
                 try:
                     response = client.chat.completions.create(
                         model="gpt-4o-mini",
@@ -76,11 +84,14 @@ def summarize_chunks(pdf_path: str, chunk_size: int = 2000):
                 })
 
         # === Save the trace file ===
+        os.makedirs("traces", exist_ok=True)
         with open(trace_file, "w") as f:
             json.dump(trace_data, f, indent=2)
 
         print(f"[🧾] Full summary trace written to {trace_file}")
         return "\n".join(summaries), trace_file
+
+
 
 # ======= Text Cleaner =======
 

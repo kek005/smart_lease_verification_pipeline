@@ -10,3 +10,4 @@ traces/
 submission_log.json
 signature_page.png
 outputs/
+ab_traces/
